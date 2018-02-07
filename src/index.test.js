@@ -32,9 +32,6 @@ const reducer = {
 
 const REDUCER = 'REDUCER';
 
-let action;
-let actionWithPromise;
-
 register(REDUCER, reducer);
 
 subscribe(REDUCER, state => {
@@ -43,8 +40,6 @@ subscribe(REDUCER, state => {
         setField: expect.any(Function),
         setFieldWithPromise: expect.any(Function),
     });
-    action = state.setField;
-    actionWithPromise = state.setFieldWithPromise;
 });
 
 describe('falx', () => {
@@ -69,19 +64,19 @@ describe('falx', () => {
     test('change field1', () => {
         const value = 'asd';
         expectedState[FIELD1] = value;
-        return action(FIELD1, value);
+        return store.getState(REDUCER).setField(FIELD1, value);
     });
 
     test('change field1 with promise', () => {
         const value = 'asdasd';
         expectedState[FIELD1] = value;
-        return actionWithPromise(FIELD1, value);
+        return store.getState(REDUCER).setFieldWithPromise(FIELD1, value);
     });
 
     test('change field2', () => {
         const value = 'fgh';
         expectedState[FIELD2] = value;
-        return action(FIELD2, value);
+        return store.getState(REDUCER).setField(FIELD2, value);
     });
 
     it('final state', () => {
