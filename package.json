@@ -1,0 +1,53 @@
+{
+  "name": "falx",
+  "version": "1.0.0",
+  "description": "single state management for JS apps",
+  "main": "dist/main.js",
+  "scripts": {
+    "test": "jest",
+    "build": "webpack --mode production",
+    "flow": "flow"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/one-more/falx.git"
+  },
+  "keywords": [
+    "falx",
+    "redux",
+    "mobx",
+    "flux",
+    "state",
+    "store"
+  ],
+  "author": "one-more",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/one-more/falx/issues"
+  },
+  "homepage": "https://github.com/one-more/falx#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-flow": "^6.23.0",
+    "flow-bin": "^0.65.0",
+    "jest": "^22.1.4",
+    "webpack": "^4.0.0-beta.0",
+    "webpack-cli": "^2.0.4"
+  },
+  "dependencies": {
+    "rxjs": "^5.5.6"
+  },
+  "babel": {
+    "presets": [
+      "flow",
+      "env"
+    ],
+    "plugins": [
+      "transform-object-rest-spread"
+    ]
+  }
+}
