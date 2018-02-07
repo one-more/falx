@@ -7,7 +7,7 @@ npm i -S falx
 ````
 
 ## usage
-```` es6
+````es6
 import {store, subscribe, register} from 'falx'
 
 const reducer = {
@@ -15,10 +15,10 @@ const reducer = {
         value: 0
     },
     actions: {
-        tick(state) {
+        tick(state, inc = 1) {
             return {
                 ...state,
-                value: state.value + 1
+                value: state.value + inc
             }
         },
         reset(state) {
@@ -90,6 +90,28 @@ subscriptionHOC('timer', Timer)
 
 ````
 
+## async actions
+to make action async just return promise
+````es6
+const reducer = {
+    state: {
+        value: 0
+    },
+    actions: {
+        tick(state, inc = 1) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    resolve({
+                        ...state,
+                        value: state.value + inc
+                    })
+                }, 100)
+            })
+        }
+    }
+}
+````
+
 ## API
 
 ### store
@@ -98,13 +120,13 @@ subscriptionHOC('timer', Timer)
 ### subscribe(name: string, cb: Function)
 
 ### unsubscribe()
-````
+````es6
 const subscription = subscribe('timer', reducer);
 subscription.unsubscribe()
 ````
 
 ### register(name: string, reducer)
-````
+````es6
 const reducer = {
     state: {
         value: 0
