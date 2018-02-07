@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "build": "webpack --mode production",
-    "flow": "flow"
+    "flow": "flow",
+    "build:publish": "npm run flow && npm run test && npm run build && npm publish"
   },
   "repository": {
     "type": "git",
