@@ -36,11 +36,11 @@ const $timer = document.querySelector('#timer');
 const $resetBtn = document.querySelector('#reset-btn');
 
 $resetBtn.addEventListener('click', () => {
-    store.getState('timer').reset();
+    store.timer.reset();
 });
 
 setInterval(() => {
-    store.getState('timer').tick();
+    store.timer.tick();
 }, 1000)
 
 subscribe('timer', state => {
@@ -112,10 +112,29 @@ const reducer = {
 }
 ````
 
+## middleware
+````es6
+import {use} from 'falx'
+const middleware = (store, statePromise, action) => {
+    console.log('action', action);
+    return statePromise.then(state => {
+        console.log('next state', state);
+        return state
+    })
+}
+````
+
+## connect redux devtools
+````es6
+import {use, reduxReducerMiddleware} from 'falx'
+use(reduxReducerMiddleware(window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()))
+````
+
 ## API
 
 ### store
 #### store.getState(name?: string)
+#### getter - store.reducerName
 
 ### subscribe(name: string, cb: Function)
 
@@ -141,3 +160,16 @@ const reducer = {
     }
 }
 ````
+
+### use(middleware: Function)
+````es6
+const middleware = (store, statePromise, action) => {
+    console.log('action', action);
+    return statePromise.then(state => {
+        console.log('next state', state);
+        return state
+    })
+}
+````
+
+### unuse(middleware: Function)

@@ -1,4 +1,22 @@
 {
-  "presets": ["flow", "env"],
-  "plugins": ["transform-object-rest-spread"]
+  "presets": [
+    "flow",
+    "env"
+  ],
+  "plugins": [
+    "transform-object-rest-spread",
+    "transform-class-properties"
+  ],
+  "env": {
+    "development": {
+      "plugins": [
+        "transform-es2015-modules-commonjs"
+      ]
+    },
+    "test": {
+      "plugins": [
+        "transform-es2015-modules-commonjs"
+      ]
+    }
+  }
 }
