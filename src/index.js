@@ -2,6 +2,7 @@
 
 import {BehaviorSubject} from './observable'
 import words from 'lodash/_unicodeWords'
+import {factory} from "./subscribe";
 
 export type Actions = {
     [name: string]: Function
@@ -22,7 +23,6 @@ export type States = {
 }
 
 export type Store = {
-    states: Object,
     getState: (name: string) => State | States
 }
 
@@ -31,24 +31,36 @@ export type Reducer = {
     actions: Actions
 }
 
-export const store: Store = {
-    states: {},
-    getState(name: string) {
-        if (!name) {
-            const state = {};
-            for (const i in store.states) {
-                state[i] = {
-                    [i]: store.states[i].getValue(),
-                    ...actions[i]
-                }
+const states = {};
+
+const subscriptions = [];
+
+function getState(name?: string) {
+    if (!name) {
+        const state = {};
+        for (const i in states) {
+            state[i] = {
+                [i]: states[i].getValue(),
+                ...actions[i]
             }
-            return state
         }
-        return {
-            [name]: store.states[name].getValue(),
-            ...actions[name]
-        }
+        return state
     }
+    return {
+        [name]: states[name].getValue(),
+        ...actions[name]
+    }
+}
+
+function dispatch(action: Action) {
+    subscriptions.forEach(subscription => {
+        subscription.cb(getState(), action)
+    })
+}
+
+export const store: Store = {
+    getState,
+    subscribe: factory(subscriptions)
 };
 
 const actions = {};
@@ -56,36 +68,40 @@ const actions = {};
 let middlewares = [];
 
 export function register(name: string, reducer: Reducer) {
-    store.states[name] = new BehaviorSubject(reducer.state);
+    states[name] = new BehaviorSubject(reducer.state);
     actions[name] = {};
     Object.defineProperty(store, name, {
         get() {
             return store.getState(name)
         }
     });
+    dispatch({
+        type: 'REGISTER_REDUCER',
+        payload: [reducer.state]
+    });
     for (const actionName in reducer.actions) {
         actions[name][actionName] = function () {
             const nextState = Promise.resolve(
                 reducer.actions[actionName].call(
                     null,
-                    store.states[name].getValue(),
+                    states[name].getValue(),
                     ...Array.from(arguments)
                 )
             );
             const action: Action = {
                 type: transformActionName(actionName),
-                payload: Array.from(arguments),
-                branch: name
+                payload: Array.from(arguments)
             };
             return applyMiddlewares(nextState, action).then(value => {
-                store.states[name].next(value)
+                states[name].next(value, action);
+                dispatch(action)
             })
         }
     }
 }
 
 export function subscribe(name: string, fn: Function) {
-    return store.states[name].subscribe(nextState => {
+    return states[name].subscribe(nextState => {
         fn({
             [name]: nextState,
             ...actions[name]
@@ -112,11 +128,3 @@ function applyMiddlewares(statePromise: Promise<any>, action: Action): Promise<a
 }
 
 const transformActionName = (name: string) => words(name).map(s => s.toUpperCase()).join('_');
-
-export function reduxReducerMiddleware(reducer: Function): Function {
-    return (store: Store, statePromise: Promise<any>, action: Action) => {
-        return statePromise.then((state: any) => {
-            return reducer(state, action)
-        })
-    }
-}

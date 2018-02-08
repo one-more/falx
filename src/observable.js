@@ -1,9 +1,6 @@
 // @flow
 
-type Subscription = {
-    cb: Function,
-    unsubscribe: Function
-}
+import {factory} from "./subscribe";
 
 export class BehaviorSubject {
     constructor(value: any) {
@@ -18,23 +15,12 @@ export class BehaviorSubject {
 
     subscriptions = [];
 
-    subscribe(cb: Function) {
-        const subscription: Subscription = {
-            cb,
-            unsubscribe: () => {
-                this.subscriptions = this.subscriptions.filter(el => {
-                    return el != subscription
-                })
-            }
-        };
-        this.subscriptions.push(subscription);
-        return subscription
-    }
+    subscribe = factory(this.subscriptions);
 
-    next = (value: any) => {
+    next = (value: any, action: any) => {
         this.value = value;
-        this.subscriptions.forEach((subscription: Subscription) => {
-            subscription.cb(value)
+        this.subscriptions.forEach(subscription => {
+            subscription.cb(value, action)
         })
     }
 }

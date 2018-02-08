@@ -124,12 +124,6 @@ const middleware = (store, statePromise, action) => {
 }
 ````
 
-## connect redux devtools
-````es6
-import {use, reduxReducerMiddleware} from 'falx'
-use(reduxReducerMiddleware(window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()))
-````
-
 ## API
 
 ### store
