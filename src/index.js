@@ -38,14 +38,15 @@ const states = {};
 
 const subscriptions = [];
 
-function getState(name?: string) {
-    if (!name) {
-        const state = {};
-        for (const i in states) {
-            state[i] = states[i].getValue()
-        }
-        return state
+function getState() {
+    const state = {};
+    for (const i in states) {
+        state[i] = states[i].getValue()
     }
+    return state
+}
+
+function getStateByName(name: string) {
     return {
         [name]: states[name].getValue(),
         ...actions[name]
@@ -68,14 +69,18 @@ const actions = {};
 
 let middlewares = [];
 
+function defineGetter(name: string) {
+    Object.defineProperty(store, name, {
+        get() {
+            return getStateByName(name)
+        }
+    });
+}
+
 export function register(name: string, reducer: Reducer) {
     states[name] = new BehaviorSubject(reducer.state);
     actions[name] = {};
-    Object.defineProperty(store, name, {
-        get() {
-            return store.getState(name)
-        }
-    });
+    defineGetter(name);
     store.dispatch({
         type: 'REGISTER_REDUCER',
         payload: [reducer.state]
@@ -132,7 +137,8 @@ const transformActionName = (name: string) => words(name).map(s => s.toUpperCase
 
 export function enhanceStore(reducer: Function, enhancer: Function) {
     if (typeof enhancer !== 'undefined') {
-        store = enhancer(enhanceStore)(reducer)
+        store = enhancer(enhanceStore)(reducer);
+        defineGetters()
     }
 
     if (typeof reducer === 'function') {
@@ -144,4 +150,10 @@ export function enhanceStore(reducer: Function, enhancer: Function) {
     }
 
     return store
+}
+
+function defineGetters() {
+    for (const name in states) {
+        defineGetter(name)
+    }
 }

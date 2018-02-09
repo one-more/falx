@@ -46,7 +46,8 @@
     "webpack-cli": "^2.0.4"
   },
   "dependencies": {
-    "lodash": "^4.17.5"
+    "lodash": "^4.17.5",
+    "redux-devtools-extension": "^2.13.2"
   },
   "babel": {
     "presets": [

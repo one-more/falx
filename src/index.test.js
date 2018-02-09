@@ -38,8 +38,7 @@ const valueReducerChanged = 'poijosvidjvo787';
 const middleware1 = (storeProp, promise, action) => {
     expect(action).toEqual({
         type: 'SET_FIELD',
-        payload: [FIELD1, middleware1value],
-        branch: REDUCER
+        payload: [FIELD1, middleware1value]
     });
     expect(storeProp).toEqual(store);
     return promise.then(state => ({
@@ -75,16 +74,12 @@ const subscription = subscribe(REDUCER, state => {
 describe('falx', () => {
     it('initial states', () => {
         expect(store.getState()).toEqual({
-            [REDUCER]: {
-                [REDUCER]: expectedState,
-                setField: expect.any(Function),
-                setFieldWithPromise: expect.any(Function),
-            }
+            [REDUCER]: expectedState
         })
     });
 
     it('initial state for reducer', () => {
-        expect(store.getState(REDUCER)).toEqual({
+        expect(store[REDUCER]).toEqual({
             [REDUCER]: expectedState,
             setField: expect.any(Function),
             setFieldWithPromise: expect.any(Function),
@@ -94,23 +89,23 @@ describe('falx', () => {
     test('change field1', () => {
         const value = 'asd';
         expectedState[FIELD1] = value;
-        return store.getState(REDUCER).setField(FIELD1, value);
+        return store[REDUCER].setField(FIELD1, value);
     });
 
     test('change field1 with promise', () => {
         const value = 'asdasd';
         expectedState[FIELD1] = value;
-        return store.getState(REDUCER).setFieldWithPromise(FIELD1, value);
+        return store[REDUCER].setFieldWithPromise(FIELD1, value);
     });
 
     test('change field2', () => {
         const value = 'fgh';
         expectedState[FIELD2] = value;
-        return store.getState(REDUCER).setField(FIELD2, value);
+        return store[REDUCER].setField(FIELD2, value);
     });
 
     it('final state', () => {
-        expect(store.getState(REDUCER)).toEqual({
+        expect(store[REDUCER]).toEqual({
             [REDUCER]: expectedState,
             setField: expect.any(Function),
             setFieldWithPromise: expect.any(Function),
@@ -120,26 +115,34 @@ describe('falx', () => {
     test('middleware1', () => {
         use(middleware1);
         expectedState[FIELD1] = middleware1valueChanged;
-        return store.getState(REDUCER).setField(FIELD1, middleware1value)
+        return store[REDUCER].setField(FIELD1, middleware1value)
     });
 
     test('unsubscribe', () => {
         unuse(middleware1);
         subscription.unsubscribe();
-        return store.getState(REDUCER).setField(FIELD1, unsubscribedValue)
+        return store[REDUCER].setField(FIELD1, unsubscribedValue)
     });
 
     test('unsubscribed successfully', () => {
         expect(expectedState[FIELD1]).toEqual(middleware1valueChanged);
-        expect(store.getState(REDUCER)[REDUCER][FIELD1]).toEqual(unsubscribedValue)
+        expect(store[REDUCER][REDUCER][FIELD1]).toEqual(unsubscribedValue)
     });
 
     test('redux reducer', () => {
-        use(reduxReducerMiddleware(reduxReducer));
+        use(function(store, promise, action) {
+            return promise.then(state => {
+                return reduxReducer(state, action)
+            })
+        });
         return store[REDUCER].setField(FIELD2, '123')
     });
 
     test('redux reducer change value', () => {
         expect(store[REDUCER][REDUCER][FIELD2]).toEqual(valueReducerChanged)
+    });
+
+    test('devtools', () => {
+
     })
 });
