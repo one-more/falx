@@ -38,11 +38,9 @@ const states = {};
 
 const subscriptions = [];
 
+let state = {};
+
 function getState() {
-    const state = {};
-    for (const i in states) {
-        state[i] = states[i].getValue()
-    }
     return state
 }
 
@@ -79,6 +77,7 @@ function defineGetter(name: string) {
 
 export function register(name: string, reducer: Reducer) {
     states[name] = new BehaviorSubject(reducer.state);
+    state[name] = reducer.state;
     actions[name] = {};
     defineGetter(name);
     store.dispatch({
@@ -93,17 +92,32 @@ export function register(name: string, reducer: Reducer) {
                     states[name].getValue(),
                     ...Array.from(arguments)
                 )
-            );
+            ).then(value => {
+                state[name] = value;
+                return state
+            });
             const action: Action = {
                 type: transformActionName(actionName),
                 payload: Array.from(arguments)
             };
-            return applyMiddlewares(nextState, action).then(value => {
-                states[name].next(value, action);
+            return applyMiddlewares(nextState, action).then(state => {
+                for (const i in states) {
+                    if (shallowDiffers(state[i], states[i].getValue())) {
+                        states[i].next(state[i], action);
+                    }
+                }
                 store.dispatch(action)
             })
         }
     }
+}
+
+function shallowDiffers (a, b) {
+    if(typeof a != typeof b) return true;
+    if (typeof a != 'object') return a == b;
+    for (let i in a) if (!(i in b)) return true;
+    for (let i in b) if (a[i] !== b[i]) return true;
+    return false
 }
 
 export function subscribe(name: string, fn: Function) {

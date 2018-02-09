@@ -1,4 +1,5 @@
 import {store, subscribe, register, use, unuse, reduxReducerMiddleware} from './index'
+import {combineReducers} from 'redux'
 
 const FIELD1 = 'field1';
 const FIELD2 = 'field2';
@@ -41,25 +42,32 @@ const middleware1 = (storeProp, promise, action) => {
         payload: [FIELD1, middleware1value]
     });
     expect(storeProp).toEqual(store);
-    return promise.then(state => ({
-        ...state,
-        [FIELD1]: middleware1valueChanged
-    }))
-};
-
-const reduxReducer = (state, action) => {
-    switch (action.type) {
-        case 'SET_FIELD':
-            return {
-                ...state,
-                [action.payload[0]]: valueReducerChanged
-            };
-        default:
-            return state
-    }
+    return promise.then(state => {
+        return {
+            ...state,
+            [REDUCER]: {
+                ...state[REDUCER],
+                [FIELD1]: middleware1valueChanged
+            }
+        }
+    })
 };
 
 const REDUCER = 'REDUCER';
+
+const reduxReducer = combineReducers({
+    [REDUCER]: (state = reducer.state, action) => {
+        switch (action.type) {
+            case 'SET_FIELD':
+                return {
+                    ...state,
+                    [action.payload[0]]: valueReducerChanged
+                };
+            default:
+                return state
+        }
+    }
+});
 
 const registerListener = function (state, action) {
     expect(action).toEqual({
@@ -152,8 +160,4 @@ describe('falx', () => {
     test('redux reducer change value', () => {
         expect(store[REDUCER][REDUCER][FIELD2]).toEqual(valueReducerChanged)
     });
-
-    test('devtools', () => {
-
-    })
 });
