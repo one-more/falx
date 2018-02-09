@@ -3,6 +3,7 @@
 import {BehaviorSubject} from './observable'
 import words from 'lodash/_unicodeWords'
 import {factory} from "./subscribe";
+import type {Subscribe} from "./subscribe";
 
 export type Actions = {
     [name: string]: Function
@@ -23,7 +24,9 @@ export type States = {
 }
 
 export type Store = {
-    getState: (name: string) => State | States
+    getState: (name: string) => State | States,
+    subscribe: Subscribe,
+    dispatch: Function
 }
 
 export type Reducer = {
@@ -39,10 +42,7 @@ function getState(name?: string) {
     if (!name) {
         const state = {};
         for (const i in states) {
-            state[i] = {
-                [i]: states[i].getValue(),
-                ...actions[i]
-            }
+            state[i] = states[i].getValue()
         }
         return state
     }
@@ -58,9 +58,10 @@ function dispatch(action: Action) {
     })
 }
 
-export const store: Store = {
+export let store: Store = {
     getState,
-    subscribe: factory(subscriptions)
+    subscribe: factory(subscriptions),
+    dispatch
 };
 
 const actions = {};
@@ -75,7 +76,7 @@ export function register(name: string, reducer: Reducer) {
             return store.getState(name)
         }
     });
-    dispatch({
+    store.dispatch({
         type: 'REGISTER_REDUCER',
         payload: [reducer.state]
     });
@@ -94,7 +95,7 @@ export function register(name: string, reducer: Reducer) {
             };
             return applyMiddlewares(nextState, action).then(value => {
                 states[name].next(value, action);
-                dispatch(action)
+                store.dispatch(action)
             })
         }
     }
@@ -128,3 +129,19 @@ function applyMiddlewares(statePromise: Promise<any>, action: Action): Promise<a
 }
 
 const transformActionName = (name: string) => words(name).map(s => s.toUpperCase()).join('_');
+
+export function enhanceStore(reducer: Function, enhancer: Function) {
+    if (typeof enhancer !== 'undefined') {
+        store = enhancer(enhanceStore)(reducer)
+    }
+
+    if (typeof reducer === 'function') {
+        use(function(store, promise, action) {
+            return promise.then(state => {
+                return reducer(state, action)
+            })
+        });
+    }
+
+    return store
+}

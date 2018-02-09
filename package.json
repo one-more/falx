@@ -7,7 +7,8 @@
     "test": "jest",
     "build": "webpack --mode production --display-modules",
     "flow": "flow",
-    "build:publish": "npm run flow && npm run test && npm run build && npm publish"
+    "build:publish": "npm run flow && npm run test && npm run build && npm publish",
+    "dist:add": "git add . -u"
   },
   "repository": {
     "type": "git",
@@ -39,6 +40,7 @@
     "babel-preset-flow": "^6.23.0",
     "flow-bin": "^0.65.0",
     "jest": "^22.1.4",
+    "pre-commit": "^1.2.2",
     "regenerator-runtime": "^0.11.1",
     "webpack": "^4.0.0-beta.0",
     "webpack-cli": "^2.0.4"
@@ -74,5 +76,9 @@
       "<rootDir>/src",
       "<rootDir>/node_modules"
     ]
-  }
+  },
+  "pre-commit": [
+    "build",
+    "dist:add"
+  ]
 }

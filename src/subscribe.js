@@ -1,6 +1,8 @@
 // @flow
 
-type Subscription = {
+export type Subscribe = (cb: Function) => Subscription;
+
+export type Subscription = {
     cb: Function,
     unsubscribe: Function
 }
