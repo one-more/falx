@@ -12,9 +12,8 @@ export function factory(subscriptions: Array<Subscription>) {
         const subscription: Subscription = {
             cb,
             unsubscribe: () => {
-                this.subscriptions = this.subscriptions.filter(el => {
-                    return el != subscription
-                })
+                const index = subscriptions.indexOf(subscription);
+                subscriptions.splice(index, 1)
             }
         };
         subscriptions.push(subscription);

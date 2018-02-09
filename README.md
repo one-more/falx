@@ -130,7 +130,6 @@ const middleware = (store, statePromise, action) => {
 #### store.getState()
 #### getter - store.reducerName
 #### subscribe(cb: Function)
-#### unsubscribe(cb: Function)
 
 ### subscribe(name: string, cb: Function)
 

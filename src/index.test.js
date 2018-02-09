@@ -61,7 +61,18 @@ const reduxReducer = (state, action) => {
 
 const REDUCER = 'REDUCER';
 
+const registerListener = function (state, action) {
+    expect(action).toEqual({
+        type: 'REGISTER_REDUCER',
+        payload: [reducer.state]
+    })
+};
+
+const registerReducerSub = store.subscribe(registerListener);
+
 register(REDUCER, reducer);
+
+registerReducerSub.unsubscribe();
 
 const subscription = subscribe(REDUCER, state => {
     expect(state).toEqual({
