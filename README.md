@@ -128,7 +128,11 @@ const middleware = (store, statePromise, action) => {
 
 ### store
 #### store.getState()
-#### getter - store.reducerName
+#### getter
+````es6
+register('timer', reducer);
+store.time.tick(2)
+````
 #### subscribe(cb: Function)
 
 ### subscribe(name: string, cb: Function)
@@ -155,6 +159,8 @@ const reducer = {
     }
 }
 ````
+
+### remove(name: string)
 
 ### use(middleware: Function)
 ````es6

@@ -1,4 +1,4 @@
-import {store, subscribe, register, use, unuse, reduxReducerMiddleware} from './index'
+import {store, subscribe, register, use, unuse, remove} from './index'
 import {combineReducers} from 'redux'
 
 const FIELD1 = 'field1';
@@ -66,6 +66,9 @@ const reduxReducer = combineReducers({
             default:
                 return state
         }
+    },
+    counter: (state = {value: 0}) => {
+        return state
     }
 });
 
@@ -158,6 +161,24 @@ describe('falx', () => {
     });
 
     test('redux reducer change value', () => {
-        expect(store[REDUCER][REDUCER][FIELD2]).toEqual(valueReducerChanged)
+        expect(store.getState()).toEqual({
+            [REDUCER]: {
+                [FIELD1]: unsubscribedValue,
+                [FIELD2]: valueReducerChanged
+            },
+            counter: {
+                value: 0
+            }
+        })
     });
+
+    test('remove reducer', () => {
+        remove(REDUCER);
+        expect(store[REDUCER]).toEqual(undefined);
+        expect(store.getState()).toEqual({
+            counter: {
+                value: 0
+            }
+        })
+    })
 });

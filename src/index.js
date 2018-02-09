@@ -34,7 +34,7 @@ export type Reducer = {
     actions: Actions
 }
 
-const states = {};
+let states = {};
 
 const subscriptions = [];
 
@@ -52,9 +52,17 @@ function getStateByName(name: string) {
 }
 
 function dispatch(action: Action) {
-    subscriptions.forEach(subscription => {
-        subscription.cb(getState(), action)
-    })
+    const nextStatePromise = Promise.resolve(state);
+    applyMiddlewares(nextStatePromise, action).then(nextState => {
+        if(shallowDiffers(state, nextState)) {
+            applyNextState(nextState)
+        }
+        subscriptions.forEach(subscription => {
+            subscription.cb(getState(), action)
+        });
+    });
+
+    return action
 }
 
 export let store: Store = {
@@ -63,7 +71,7 @@ export let store: Store = {
     dispatch
 };
 
-const actions = {};
+let actions = {};
 
 let middlewares = [];
 
@@ -71,7 +79,8 @@ function defineGetter(name: string) {
     Object.defineProperty(store, name, {
         get() {
             return getStateByName(name)
-        }
+        },
+        configurable: true
     });
 }
 
@@ -86,7 +95,7 @@ export function register(name: string, reducer: Reducer) {
     });
     for (const actionName in reducer.actions) {
         actions[name][actionName] = function () {
-            const nextState = Promise.resolve(
+            const nextStatePromise = Promise.resolve(
                 reducer.actions[actionName].call(
                     null,
                     states[name].getValue(),
@@ -100,16 +109,38 @@ export function register(name: string, reducer: Reducer) {
                 type: transformActionName(actionName),
                 payload: Array.from(arguments)
             };
-            return applyMiddlewares(nextState, action).then(state => {
-                for (const i in states) {
-                    if (shallowDiffers(state[i], states[i].getValue())) {
-                        states[i].next(state[i], action);
-                    }
-                }
+            return applyMiddlewares(nextStatePromise, action).then(nextState => {
+                applyNextState(nextState);
                 store.dispatch(action)
             })
         }
     }
+}
+
+export function remove(name: string) {
+    states = filterObject(name, states);
+    state = filterObject(name, state);
+    actions = filterObject(name, actions);
+    delete store[name];
+}
+
+function filterObject(filterField: string, filterObject: Object) {
+    const next = {};
+    for (const i in filterObject) {
+        if (i != filterField) {
+            next[i] = filterObject[i];
+        }
+    }
+    return next
+}
+
+function applyNextState(nextState: State) {
+    for (const i in states) {
+        if (shallowDiffers(nextState[i], states[i].getValue())) {
+            states[i].next(nextState[i]);
+        }
+    }
+    state = nextState;
 }
 
 function shallowDiffers (a, b) {
