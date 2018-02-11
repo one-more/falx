@@ -112,6 +112,16 @@ const reducer = {
 }
 ````
 
+## connect redux devtools
+````es6
+import {connectDevtools} from 'falx-redux-devtools'
+
+
+connectDevtools(
+    window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
+);
+````
+
 ## middleware
 ````es6
 import {use} from 'falx'
