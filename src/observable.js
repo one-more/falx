@@ -17,10 +17,10 @@ export class BehaviorSubject {
 
     subscribe = factory(this.subscriptions);
 
-    next = (value: any, action: any) => {
+    next = (value: any) => {
         this.value = value;
         this.subscriptions.forEach(subscription => {
-            subscription.cb(value, action)
+            subscription.cb(value)
         })
     }
 }

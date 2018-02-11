@@ -1,5 +1,13 @@
 import {store, subscribe, register, use, unuse, remove} from './index'
 import {combineReducers} from 'redux'
+import words from 'lodash/_unicodeWords'
+
+const transformActionName = (name: string) => words(name).map(s => s.toUpperCase()).join('_');
+
+use(function (store, promise, action) {
+    action.type = transformActionName(action.type);
+    return promise
+});
 
 const FIELD1 = 'field1';
 const FIELD2 = 'field2';
@@ -31,6 +39,21 @@ const reducer = {
     }
 };
 
+const timerReducer = {
+    state: {
+        value: 0
+    },
+    actions: {
+        tick(state, count = 1) {
+            return {
+                ...state,
+                value: state.value + count
+            }
+        }
+    }
+};
+const TIMER = 'TIMER';
+
 const middleware1value = 'middleware1';
 const middleware1valueChanged = 'middleware11111';
 const unsubscribedValue = '123lkjaslkd';
@@ -54,6 +77,7 @@ const middleware1 = (storeProp, promise, action) => {
 };
 
 const REDUCER = 'REDUCER';
+const INCREASE_COUNTER = 'INCREASE_COUNTER';
 
 const reduxReducer = combineReducers({
     [REDUCER]: (state = reducer.state, action) => {
@@ -67,33 +91,114 @@ const reduxReducer = combineReducers({
                 return state
         }
     },
-    counter: (state = {value: 0}) => {
-        return state
-    }
+    counter: counterReducer
 });
+
+function counterReducer(state = {value: 0}, action) {
+    if (action.type === INCREASE_COUNTER) {
+        return {
+            ...state,
+            value: state.value + 1
+        }
+    }
+    return state
+}
+
+function reduxReducerMiddleware(store, promise, action) {
+    return promise.then(state => {
+        return reduxReducer(state, action)
+    })
+}
+
+function counterReducerMiddleware(store, promise, action) {
+    return promise.then(state => {
+        state.counter = counterReducer(state.counter, action);
+        return state
+    })
+}
 
 const registerListener = function (state, action) {
     expect(action).toEqual({
         type: 'REGISTER_REDUCER',
-        payload: [reducer.state]
+        payload: REDUCER
     })
 };
 
-const registerReducerSub = store.subscribe(registerListener);
-
-register(REDUCER, reducer);
-
-registerReducerSub.unsubscribe();
-
-const subscription = subscribe(REDUCER, state => {
+function timerSubscription(state) {
     expect(state).toEqual({
-        [REDUCER]: expectedState,
-        setField: expect.any(Function),
-        setFieldWithPromise: expect.any(Function),
-    });
+        [TIMER]: {
+            value: 2
+        },
+        tick: expect.any(Function)
+    })
+}
+
+var subscription;
+
+var timerSub;
+
+const CLEAR_STATES = 'CLEAR_STATES';
+
+function resetValue(value) {
+    switch(typeof value) {
+        case 'string':
+            return '';
+        case 'number':
+            return 0;
+        case 'object':
+            if (value instanceof Array) {
+                return []
+            }
+            for (const field in value) {
+                value[field] = resetValue(value[field])
+            }
+            return value;
+        default:
+            return null
+    }
+}
+
+use(function (store, statePromise, action) {
+    return statePromise.then(state => {
+        if (action.type === CLEAR_STATES) {
+            action.payload.forEach(branch => {
+                state[branch] = resetValue(state[branch])
+            });
+
+        }
+        return state
+    })
 });
 
+var listener;
+var registerReducerSub;
+var reducerListener;
+
 describe('falx', () => {
+    test('register subscription', () => {
+        listener = jest.fn(registerListener);
+
+        registerReducerSub = store.subscribe(listener);
+
+        return register(REDUCER, reducer);
+    });
+
+    test('listener have been called', () => {
+        const fn = state => {
+            expect(state).toEqual({
+                [REDUCER]: expectedState,
+                setField: expect.any(Function),
+                setFieldWithPromise: expect.any(Function),
+            });
+        };
+        reducerListener = jest.fn(fn);
+        subscription = subscribe(REDUCER, reducerListener);
+
+        expect(listener).toHaveBeenCalled();
+
+        registerReducerSub.unsubscribe();
+    });
+
     it('initial states', () => {
         expect(store.getState()).toEqual({
             [REDUCER]: expectedState
@@ -102,7 +207,10 @@ describe('falx', () => {
 
     it('initial state for reducer', () => {
         expect(store[REDUCER]).toEqual({
-            [REDUCER]: expectedState,
+            [REDUCER]: {
+                [FIELD1]: 1,
+                [FIELD2]: 2
+            },
             setField: expect.any(Function),
             setFieldWithPromise: expect.any(Function),
         })
@@ -112,6 +220,10 @@ describe('falx', () => {
         const value = 'asd';
         expectedState[FIELD1] = value;
         return store[REDUCER].setField(FIELD1, value);
+    });
+
+    test('reducer listener have been called', () => {
+        expect(reducerListener).toHaveBeenCalled()
     });
 
     test('change field1 with promise', () => {
@@ -152,11 +264,7 @@ describe('falx', () => {
     });
 
     test('redux reducer', () => {
-        use(function(store, promise, action) {
-            return promise.then(state => {
-                return reduxReducer(state, action)
-            })
-        });
+        use(reduxReducerMiddleware);
         return store[REDUCER].setField(FIELD2, '123')
     });
 
@@ -173,12 +281,56 @@ describe('falx', () => {
     });
 
     test('remove reducer', () => {
-        remove(REDUCER);
+        unuse(reduxReducerMiddleware);
+        return remove(REDUCER);
+    });
+
+    test('removed reducer state', () => {
         expect(store[REDUCER]).toEqual(undefined);
         expect(store.getState()).toEqual({
             counter: {
                 value: 0
             }
         })
-    })
+    });
+
+    test('dispatch action', () => {
+        use(counterReducerMiddleware);
+        return store.dispatch({
+            type: INCREASE_COUNTER
+        })
+    });
+
+    test('increased value', () => {
+        expect(store.getState()).toEqual({
+            counter: {
+                value: 1
+            }
+        })
+    });
+
+    test('timer tick', () => {
+        register(TIMER, timerReducer);
+        timerSub = subscribe(TIMER, timerSubscription);
+        return store[TIMER].tick(2)
+    });
+
+    test('clear timer', () => {
+        timerSub.unsubscribe();
+        return store.dispatch({
+            type: CLEAR_STATES,
+            payload: [TIMER]
+        })
+    });
+
+    test('timer reset', () => {
+        expect(store.getState()).toEqual({
+            [TIMER]: {
+                value: 0
+            },
+            counter: {
+                value: 1
+            }
+        })
+    });
 });

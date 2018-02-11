@@ -133,7 +133,13 @@ const middleware = (store, statePromise, action) => {
 register('timer', reducer);
 store.time.tick(2)
 ````
-#### subscribe(cb: Function)
+#### store.subscribe(cb: Function)
+#### store.dispatch(action)
+````es6
+store.dispatch({
+    type: 'ACTION_TYPE'
+})
+````
 
 ### subscribe(name: string, cb: Function)
 

@@ -1,9 +1,9 @@
 // @flow
 
 import {BehaviorSubject} from './observable'
-import words from 'lodash/_unicodeWords'
-import {factory} from "./subscribe";
-import type {Subscribe} from "./subscribe";
+import {factory} from "./subscribe"
+import type {Subscribe} from "./subscribe"
+import {shallowDiffers} from './shallow-differs'
 
 export type Actions = {
     [name: string]: Function
@@ -11,7 +11,7 @@ export type Actions = {
 
 export type Action = {
     type: string,
-    payload: Array<any>
+    payload: any
 }
 
 export type State = {
@@ -34,11 +34,11 @@ export type Reducer = {
     actions: Actions
 }
 
-let states = {};
+const states = {};
 
 const subscriptions = [];
 
-let state = {};
+const state = {};
 
 function getState() {
     return state
@@ -51,29 +51,34 @@ function getStateByName(name: string) {
     }
 }
 
-function dispatch(action: Action) {
-    const nextStatePromise = Promise.resolve(state);
-    applyMiddlewares(nextStatePromise, action).then(nextState => {
+function dispatch(action: Action): Promise<Action> {
+    const nextStatePromise = Promise.resolve({
+        ...state
+    });
+    return applyMiddlewares(nextStatePromise, action).then(nextState => {
         if(shallowDiffers(state, nextState)) {
             applyNextState(nextState)
         }
-        subscriptions.forEach(subscription => {
-            subscription.cb(getState(), action)
-        });
-    });
-
-    return action
+        callSubscriptions(action);
+        return action
+    })
 }
 
-export let store: Store = {
+function callSubscriptions(action: Action) {
+    subscriptions.forEach(subscription => {
+        subscription.cb(getState(), action)
+    });
+}
+
+export const store: Store = {
     getState,
     subscribe: factory(subscriptions),
     dispatch
 };
 
-let actions = {};
+const actions = {};
 
-let middlewares = [];
+const middlewares = [];
 
 function defineGetter(name: string) {
     Object.defineProperty(store, name, {
@@ -85,14 +90,12 @@ function defineGetter(name: string) {
 }
 
 export function register(name: string, reducer: Reducer) {
-    states[name] = new BehaviorSubject(reducer.state);
+    states[name] = new BehaviorSubject({
+        ...reducer.state
+    });
     state[name] = reducer.state;
     actions[name] = {};
     defineGetter(name);
-    store.dispatch({
-        type: 'REGISTER_REDUCER',
-        payload: [reducer.state]
-    });
     for (const actionName in reducer.actions) {
         actions[name][actionName] = function () {
             const nextStatePromise = Promise.resolve(
@@ -102,62 +105,55 @@ export function register(name: string, reducer: Reducer) {
                     ...Array.from(arguments)
                 )
             ).then(value => {
-                state[name] = value;
-                return state
+                return {
+                    ...state,
+                    [name]: value
+                }
             });
             const action: Action = {
-                type: transformActionName(actionName),
+                type: actionName,
                 payload: Array.from(arguments)
             };
             return applyMiddlewares(nextStatePromise, action).then(nextState => {
                 applyNextState(nextState);
-                store.dispatch(action)
+                callSubscriptions(action)
             })
         }
     }
+    return dispatch({
+        type: 'REGISTER_REDUCER',
+        payload: name
+    });
 }
 
 export function remove(name: string) {
-    states = filterObject(name, states);
-    state = filterObject(name, state);
-    actions = filterObject(name, actions);
+    delete states[name];
+    delete state[name];
+    delete actions[name];
     delete store[name];
-}
-
-function filterObject(filterField: string, filterObject: Object) {
-    const next = {};
-    for (const i in filterObject) {
-        if (i != filterField) {
-            next[i] = filterObject[i];
-        }
-    }
-    return next
+    return dispatch({
+        type: 'REMOVE_REDUCER',
+        payload: name
+    })
 }
 
 function applyNextState(nextState: State) {
     for (const i in states) {
         if (shallowDiffers(nextState[i], states[i].getValue())) {
-            states[i].next(nextState[i]);
+            states[i].next(nextState[i])
         }
     }
-    state = nextState;
-}
-
-function shallowDiffers (a, b) {
-    if(typeof a != typeof b) return true;
-    if (typeof a != 'object') return a == b;
-    for (let i in a) if (!(i in b)) return true;
-    for (let i in b) if (a[i] !== b[i]) return true;
-    return false
+    Object.assign(state, nextState);
 }
 
 export function subscribe(name: string, fn: Function) {
-    return states[name].subscribe(nextState => {
+    const subscription = states[name].subscribe(nextState => {
         fn({
             [name]: nextState,
             ...actions[name]
         })
-    })
+    });
+    return subscription
 }
 
 export function use(middleware: Function) {
@@ -165,40 +161,14 @@ export function use(middleware: Function) {
 }
 
 export function unuse(middleware: Function) {
-    middlewares = middlewares.filter(el => {
-        return el != middleware
-    })
+    const index = middlewares.indexOf(middleware);
+    middlewares.splice(index, 1)
 }
 
 function applyMiddlewares(statePromise: Promise<any>, action: Action): Promise<any> {
-    return middlewares.reduce((promise, middleware) => {
+    return middlewares.reduce((promise, middleware, i) => {
         return promise.then(value => {
             return middleware(store, Promise.resolve(value), action)
         })
     }, Promise.resolve(statePromise))
-}
-
-const transformActionName = (name: string) => words(name).map(s => s.toUpperCase()).join('_');
-
-export function enhanceStore(reducer: Function, enhancer: Function) {
-    if (typeof enhancer !== 'undefined') {
-        store = enhancer(enhanceStore)(reducer);
-        defineGetters()
-    }
-
-    if (typeof reducer === 'function') {
-        use(function(store, promise, action) {
-            return promise.then(state => {
-                return reducer(state, action)
-            })
-        });
-    }
-
-    return store
-}
-
-function defineGetters() {
-    for (const name in states) {
-        defineGetter(name)
-    }
 }
