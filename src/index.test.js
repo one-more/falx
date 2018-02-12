@@ -124,10 +124,12 @@ const registerListener = function (state, action) {
     })
 };
 
+let expectedTimerValue = 0;
+
 function timerSubscription(state) {
     expect(state).toEqual({
         [TIMER]: {
-            value: 2
+            value: expectedTimerValue
         },
         tick: expect.any(Function)
     })
@@ -312,6 +314,7 @@ describe('falx', () => {
     test('timer tick', () => {
         register(TIMER, timerReducer);
         timerSub = subscribe(TIMER, timerSubscription);
+        expectedTimerValue = 2;
         return store[TIMER].tick(2)
     });
 
@@ -333,4 +336,64 @@ describe('falx', () => {
             }
         })
     });
+
+    test('todo app', () => {
+        const reducer = {
+            state: [],
+            actions: {
+                add(state, text) {
+                    const todo = {
+                        id: state.length + 1,
+                        done: false,
+                        text
+                    };
+                    return state.concat(todo)
+                },
+                done(state, id) {
+                    return state.map(todo => {
+                        if (todo.id == id) {
+                            todo.done = !todo.done
+                        }
+                        return todo
+                    })
+                },
+                remove(state, id) {
+                    return state.filter(todo => todo.id != id)
+                }
+            }
+        };
+
+        const TODOS = 'todos';
+
+        const expectedTodos = [];
+
+        register(TODOS, reducer);
+        const listener = jest.fn(state => {
+            expect(state.todos).toEqual(expectedTodos)
+        });
+        subscribe(TODOS, listener);
+        expect(listener).toHaveBeenCalled();
+
+        const todo1 = 'todo1';
+        const todo2 = 'todo2';
+        expectedTodos.push({
+            id: 1,
+            text: todo1,
+            done: false
+        });
+        return store[TODOS].add(todo1).then(() => {
+            expectedTodos.push({
+                id: 2,
+                text: todo2,
+                done: false
+            });
+            return store[TODOS].add(todo2)
+        }).then(() => {
+            expectedTodos[0].done = true;
+            return store[TODOS].done(1);
+        }).then(() => {
+            expectedTodos.splice(0, 1);
+            return store[TODOS].remove(1);
+        });
+    })
 });

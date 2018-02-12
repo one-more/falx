@@ -89,10 +89,22 @@ function defineGetter(name: string) {
     });
 }
 
+function copyState(state: any) {
+    switch (typeof state) {
+        case 'object':
+            if (state instanceof Array) {
+                return state.concat()
+            }
+            return {
+                ...state
+            };
+        default:
+            return state
+    }
+}
+
 export function register(name: string, reducer: Reducer) {
-    states[name] = new BehaviorSubject({
-        ...reducer.state
-    });
+    states[name] = new BehaviorSubject(copyState(reducer.state));
     state[name] = reducer.state;
     actions[name] = {};
     defineGetter(name);
@@ -147,13 +159,14 @@ function applyNextState(nextState: State) {
 }
 
 export function subscribe(name: string, fn: Function) {
-    const subscription = states[name].subscribe(nextState => {
+    const callFn = nextState => {
         fn({
             [name]: nextState,
             ...actions[name]
         })
-    });
-    return subscription
+    };
+    callFn(store[name][name]);
+    return states[name].subscribe(callFn)
 }
 
 export function use(middleware: Function) {
