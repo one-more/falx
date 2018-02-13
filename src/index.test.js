@@ -352,7 +352,10 @@ describe('falx', () => {
                 done(state, id) {
                     return state.map(todo => {
                         if (todo.id == id) {
-                            todo.done = !todo.done
+                            return ({
+                                ...todo,
+                                done: !todo.done
+                            })
                         }
                         return todo
                     })
@@ -382,6 +385,7 @@ describe('falx', () => {
             done: false
         });
         return store[TODOS].add(todo1).then(() => {
+            expect(listener).toHaveBeenCalledTimes(2);
             expectedTodos.push({
                 id: 2,
                 text: todo2,
@@ -389,11 +393,21 @@ describe('falx', () => {
             });
             return store[TODOS].add(todo2)
         }).then(() => {
+            expect(listener).toHaveBeenCalledTimes(3);
             expectedTodos[0].done = true;
             return store[TODOS].done(1);
         }).then(() => {
+            expect(listener).toHaveBeenCalledTimes(4);
             expectedTodos.splice(0, 1);
             return store[TODOS].remove(1);
+        }).then(() => {
+            expect(listener).toHaveBeenCalledTimes(5);
+            expect(listener).toHaveBeenCalledWith({
+                add: expect.any(Function),
+                done: expect.any(Function),
+                remove: expect.any(Function),
+                todos: []
+            });
         });
     })
 });

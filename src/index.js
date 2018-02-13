@@ -93,7 +93,7 @@ function copyState(state: any) {
     switch (typeof state) {
         case 'object':
             if (state instanceof Array) {
-                return state.concat()
+                return state.slice()
             }
             return {
                 ...state
