@@ -414,6 +414,15 @@ describe('falx', () => {
                     }
                 ]
             });
+            expect(store[TODOS][TODOS]).toEqual(
+                [
+                    {
+                        id: 2,
+                        done: false,
+                        text: todo2
+                    }
+                ]
+            );
         });
     })
 });

@@ -24,6 +24,9 @@ describe('shallow differs', () => {
         };
         const f = 4;
         const g = 5;
+        const h = [{done: true}];
+        const i = h.filter(el => !el.done);
+        const j = h.slice();
         expect(shallowDiffers(a,a)).toBeFalsy();
         expect(shallowDiffers(a,e)).toBeFalsy();
         expect(shallowDiffers(d,f)).toBeFalsy();
@@ -31,5 +34,9 @@ describe('shallow differs', () => {
         expect(shallowDiffers(a,c)).toBeTruthy();
         expect(shallowDiffers(a,d)).toBeTruthy();
         expect(shallowDiffers(f,g)).toBeTruthy();
+        expect(shallowDiffers(f,g)).toBeTruthy();
+        expect(shallowDiffers(f,g)).toBeTruthy();
+        expect(shallowDiffers(h,i)).toBeTruthy();
+        expect(shallowDiffers(h,j)).toBeFalsy();
     })
 });
