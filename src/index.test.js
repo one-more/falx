@@ -402,11 +402,17 @@ describe('falx', () => {
             return store[TODOS].remove(1);
         }).then(() => {
             expect(listener).toHaveBeenCalledTimes(5);
-            expect(listener).toHaveBeenCalledWith({
+            expect(listener).toHaveBeenLastCalledWith({
                 add: expect.any(Function),
                 done: expect.any(Function),
                 remove: expect.any(Function),
-                todos: []
+                todos: [
+                    {
+                        id: 2,
+                        done: false,
+                        text: todo2
+                    }
+                ]
             });
         });
     })
