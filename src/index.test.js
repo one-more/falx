@@ -18,7 +18,9 @@ const expectedState = {
 };
 
 const reducer = {
-    state: expectedState,
+    state: {
+        ...expectedState
+    },
     actions: {
         setField(state, name, value) {
             return {

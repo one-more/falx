@@ -89,22 +89,8 @@ function defineGetter(name: string) {
     });
 }
 
-function copyState(state: any) {
-    switch (typeof state) {
-        case 'object':
-            if (state instanceof Array) {
-                return state.slice()
-            }
-            return {
-                ...state
-            };
-        default:
-            return state
-    }
-}
-
 export function register(name: string, reducer: Reducer) {
-    states[name] = new BehaviorSubject(copyState(reducer.state));
+    states[name] = new BehaviorSubject(reducer.state);
     state[name] = reducer.state;
     actions[name] = {};
     defineGetter(name);
