@@ -11,53 +11,65 @@ npm i -S falx
 import {store, subscribe, register} from 'falx'
 
 const reducer = {
-    state: {
-        value: 0
-    },
+    state: [],
     actions: {
-        tick(state, inc = 1) {
-            return {
-                ...state,
-                value: state.value + inc
-            }
+        add(state, text) {
+          const todo = {
+            id: getNextId(),
+            done: false,
+            text
+          }
+          return state.concat(todo)
         },
-        reset(state) {
-            return {
-                ...state,
-                value: 0
-            }
+        done(state, id) {
+            return state.map(todo => {
+              if (todo.id == id) {
+                return {
+                  ...todo,
+                  done: !todo.done
+                }
+              }
+              return todo
+            })
+        },
+        remove(state, id) {
+            return state.filter(todo => todo.id != id)
         }
     }
 }
 
-register('timer', reducer);
+const TODOS = 'todos';
+const todoList = document.querySelector('#todos');
 
-const $timer = document.querySelector('#timer');
-const $resetBtn = document.querySelector('#reset-btn');
-
-$resetBtn.addEventListener('click', () => {
-    store.timer.reset();
+register(TODOS, reducer);
+subscribe(TODOS, state => {
+    const html = state.todos.map(todo => `
+        <li ${todo.done ? 'class="completed"' : ''} >
+          <div class="view">
+            <input class="toggle" type="checkbox" id="${todo.id}" ${todo.done ? 'checked' : ''} />
+            <label>${todo.text}</label>
+            <button class="destroy" id="${todo.id}"></button>
+          </div>
+          <input class="edit" value="${todo.text}" />
+        </li>
+   `);
+   todoList.innerHTML = html.join('')
 });
+````
+[TodoApp demo](https://stackblitz.com/edit/typescript-iehr6d?file=index.ts)
 
-setInterval(() => {
-    store.timer.tick();
-}, 1000)
+## with React
+````es6
+import {PureComponent} from 'react'
+import {store} from 'falx'
 
-subscribe('timer', state => {
-    $timer.innerHTML = state.timer.value;
-});
-
-// with React
-
-function subscribeHOC(name, Component) {
+export function subscribeHOC(name, Component) {
     return class extends PureComponent {
-        state = store.getState(name);
+        state = store[name];
 
         componentDidMount() {
             this.subscription = subscribe(name, nextState => {
-                this.setState({
-                    ...nextState
-                })
+                this.setState(nextState)
             });
         }
 
@@ -72,22 +84,6 @@ function subscribeHOC(name, Component) {
         }
     }
 }
-
-function Timer(props) {
-    return (
-        <div>
-            <div>
-                {props.timer.value}
-            </div>
-            <button onClick={props.reset} >
-                reset
-            </button>
-        </div>
-    )
-}
-
-subscriptionHOC('timer', Timer)
-
 ````
 
 ## async actions
