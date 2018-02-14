@@ -60,31 +60,50 @@ subscribe(TODOS, state => {
 
 ## with React
 ````es6
-import {PureComponent} from 'react'
-import {store} from 'falx'
+import React, {PureComponent} from 'react'
+import {subscribeHOC} from 'falx-react'
 
-export function subscribeHOC(name, Component) {
-    return class extends PureComponent {
-        state = store[name];
 
-        componentDidMount() {
-            this.subscription = subscribe(name, nextState => {
-                this.setState(nextState)
-            });
+const reducer = {
+    state: {
+        value: 0
+    },
+    actions: {
+        up(state) {
+            return {
+                ...state,
+                value: state.value + 1
+            }
+        },
+        down(state) {
+            return {
+                ...state,
+                value: state.value - 1
+            }
         }
+    }
+};
 
-        componentWillUnmount() {
-            this.subscription.unsubscribe()
-        }
+const COUNTER = 'counter';
 
-        render() {
-            return (
-                <Component {...this.props} {...this.state} />
-            )
-        }
+register(COUNTER, reducer);
+
+@subscribeHOC(COUNTER)
+class Counter extends PureComponent {
+    render() {
+        return (
+            <div>
+                <div id="value">
+                    {this.props.counter.value}
+                </div>
+                <button id="up" onClick={this.props.up} >up</button>
+                <button id="down" onClick={this.props.down} >down</button>
+            </div>
+        )
     }
 }
 ````
+[falx-react](https://github.com/one-more/falx-react)
 
 ## async actions
 to make action async just return promise
@@ -117,6 +136,7 @@ connectDevtools(
     window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
 );
 ````
+[falx-redux-devtools](https://github.com/one-more/falx-redux-devtools)
 
 ## middleware
 ````es6
