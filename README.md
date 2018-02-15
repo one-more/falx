@@ -103,7 +103,8 @@ class Counter extends PureComponent {
     }
 }
 ````
-[falx-react](https://github.com/one-more/falx-react)
+[falx-react](https://github.com/one-more/falx-react)     
+[live demo](https://stackblitz.com/edit/react-zfxupc?file=index.js)
 
 ## async actions
 to make action async just return promise
