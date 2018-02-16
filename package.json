@@ -1,6 +1,6 @@
 {
   "name": "falx",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "single state management for JS apps",
   "main": "dist/main.js",
   "scripts": {

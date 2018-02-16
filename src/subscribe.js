@@ -8,7 +8,7 @@ export type Subscription = {
 }
 
 export function factory(subscriptions: Array<Subscription>) {
-    return function subscribe(cb: Function) {
+    function subscribe(cb: Function) {
         const subscription: Subscription = {
             cb,
             unsubscribe: () => {
@@ -18,5 +18,14 @@ export function factory(subscriptions: Array<Subscription>) {
         };
         subscriptions.push(subscription);
         return subscription
+    }
+    function callSubscriptions() {
+        subscriptions.forEach(sub => {
+            sub.cb.apply(null, arguments)
+        })
+    }
+    return {
+        subscribe,
+        callSubscriptions
     }
 }

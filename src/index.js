@@ -1,6 +1,5 @@
 // @flow
 
-import {BehaviorSubject} from './observable'
 import {factory} from "./subscribe"
 import type {Subscribe} from "./subscribe"
 import {shallowDiffers} from './shallow-differs'
@@ -19,14 +18,11 @@ export type State = {
     actions: Actions
 }
 
-export type States = {
-    [name: string]: State
-}
-
 export type Store = {
-    getState: (name: string) => State | States,
+    getState: () => State,
     subscribe: Subscribe,
-    dispatch: Function
+    dispatch: Function,
+    callSubscriptions: Function
 }
 
 export type Reducer = {
@@ -34,11 +30,9 @@ export type Reducer = {
     actions: Actions
 }
 
-const states = {};
-
-const subscriptions = [];
-
 const state = {};
+
+const listeners = {};
 
 function getState() {
     return state
@@ -46,60 +40,46 @@ function getState() {
 
 function getStateByName(name: string) {
     return {
-        [name]: states[name].getValue(),
+        [name]: state[name],
         ...actions[name]
     }
 }
 
 function dispatch(action: Action): Promise<Action> {
-    const nextStatePromise = Promise.resolve({
-        ...state
-    });
+    const nextStatePromise = Promise.resolve({...state});
     return applyMiddlewares(nextStatePromise, action).then(nextState => {
         if(shallowDiffers(state, nextState)) {
             applyNextState(nextState)
         }
-        callSubscriptions(action);
+        store.callSubscriptions(getState(), action);
         return action
     })
 }
 
-function callSubscriptions(action: Action) {
-    subscriptions.forEach(subscription => {
-        subscription.cb(getState(), action)
-    });
-}
-
 export const store: Store = {
     getState,
-    subscribe: factory(subscriptions),
-    dispatch
+    dispatch,
+    ...factory([])
 };
 
 const actions = {};
 
 const middlewares = [];
 
-function defineGetter(name: string) {
-    Object.defineProperty(store, name, {
-        get() {
-            return getStateByName(name)
-        },
-        configurable: true
-    });
-}
-
 export function register(name: string, reducer: Reducer) {
-    states[name] = new BehaviorSubject(reducer.state);
     state[name] = reducer.state;
     actions[name] = {};
-    defineGetter(name);
+    listeners[name] = factory([]);
+    Object.defineProperty(store, name, {
+        get() { return getStateByName(name) },
+        configurable: true
+    });
     for (const actionName in reducer.actions) {
         actions[name][actionName] = function () {
             const nextStatePromise = Promise.resolve(
                 reducer.actions[actionName].call(
                     null,
-                    states[name].getValue(),
+                    state[name],
                     ...Array.from(arguments)
                 )
             ).then(value => {
@@ -114,7 +94,7 @@ export function register(name: string, reducer: Reducer) {
             };
             return applyMiddlewares(nextStatePromise, action).then(nextState => {
                 applyNextState(nextState);
-                callSubscriptions(action)
+                store.callSubscriptions(getState(), action)
             })
         }
     }
@@ -125,7 +105,6 @@ export function register(name: string, reducer: Reducer) {
 }
 
 export function remove(name: string) {
-    delete states[name];
     delete state[name];
     delete actions[name];
     delete store[name];
@@ -136,9 +115,9 @@ export function remove(name: string) {
 }
 
 function applyNextState(nextState: State) {
-    for (const i in states) {
-        if (shallowDiffers(nextState[i], states[i].getValue())) {
-            states[i].next(nextState[i])
+    for (const i in listeners) {
+        if (shallowDiffers(nextState[i], state[i])) {
+            listeners[i].callSubscriptions(nextState[i])
         }
     }
     Object.assign(state, nextState);
@@ -151,8 +130,8 @@ export function subscribe(name: string, fn: Function) {
             ...actions[name]
         })
     };
-    callFn(store[name][name]);
-    return states[name].subscribe(callFn)
+    callFn(state[name]);
+    return listeners[name].subscribe(callFn)
 }
 
 export function use(middleware: Function) {
@@ -165,7 +144,7 @@ export function unuse(middleware: Function) {
 }
 
 function applyMiddlewares(statePromise: Promise<any>, action: Action): Promise<any> {
-    return middlewares.reduce((promise, middleware, i) => {
+    return middlewares.reduce((promise, middleware) => {
         return promise.then(value => {
             return middleware(store, Promise.resolve(value), action)
         })
